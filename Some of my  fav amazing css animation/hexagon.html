@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+      body {
+        margin: 0;
+      }
+      svg {
+        background: #000099;
+      }
+      .Trazo {
+        stroke: #00cccc;
+        stroke-width: 7px;
+        fill: none;
+        stroke-linecap: round;
+      }
+      .haciaLas12,
+      .haciaLas4,
+      .haciaLas8 {
+        animation: giro120 16s infinite linear;
+      }
+      .haciaLas12 {
+        transform-origin: 400px 236.088px;
+      }
+      .haciaLas4 {
+        transform-origin: 455.349px 331.955px;
+      }
+      .haciaLas8 {
+        transform-origin: 344.65px 331.955px;
+      }
+      @keyframes giro120 {
+        to {
+          transform: rotate(120deg);
+        }
+      }
+      .Panal {
+        transform-origin: 400px 300px;
+        transform: scale(1.5);
+        animation: Escalar 4s infinite alternate ease-in-out;
+      }
+      @keyframes Escalar {
+        to {
+          transform: scale(2);
+        }
+      }
+    </style>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+      viewBox="0 0 800 600"
+    >
+      <defs>
+        <pattern
+          id="Hexagonos"
+          x="0"
+          y="0"
+          width="55.3491"
+          height="95.8675"
+          patternUnits="userSpaceOnUse"
+          patternTransform="yes"
+        >
+          <g class="Trazo">
+            <polyline points="12.6,-19.6 40.2,-3.6 67.9,-19.6 " />
+            <polyline points="-15.1,28.4 12.6,44.4 40.2,28.4 67.9,44.4 " />
+            <polyline points="-15.1,92.3 12.6,76.3 40.2,92.3 67.9,76.3 " />
+            <line x1="12.6" y1="76.3" x2="12.6" y2="44.4" />
+            <line x1="40.2" y1="92.3" x2="40.2" y2="124.2" />
+            <line x1="40.2" y1="-3.6" x2="40.2" y2="28.4" />
+          </g>
+        </pattern>
+        <rect
+          id="Patron"
+          fill="url(#Hexagonos)"
+          width="1200"
+          height="1000"
+          x="-200"
+          y="-200"
+          opacity="0.60"
+        />
+      </defs>
+      <g class="Panal">
+        <use xlink:href="#Patron" class="haciaLas12" />
+        <use xlink:href="#Patron" class="haciaLas4" />
+        <use xlink:href="#Patron" class="haciaLas8" />
+      </g>
+    </svg>
+  </body>
+</html>

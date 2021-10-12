@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Helvetica Neue", Helvetica, sans-serif;
+        background-color: royalblue;
+      }
+
+      .main {
+        position: absolute;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .msg {
+        position: absolute;
+        top: 30%;
+        left: 10%;
+        color: white;
+        text-transform: uppercase;
+        font-size: 5em;
+        font-weight: 600;
+        line-height: 0.8em;
+      }
+
+      .btn {
+        position: absolute;
+        top: 55%;
+        left: 10%;
+        width: 150px;
+        height: 35px;
+        color: white;
+        font-size: 15px;
+        line-height: 35px;
+        text-transform: uppercase;
+        text-align: center;
+        background-color: #000;
+        cursor: pointer;
+      }
+      .btn::before {
+        content: "";
+        position: absolute;
+        top: 55%;
+        left: 100%;
+        height: 3px;
+        width: 90px;
+        background-color: #000;
+      }
+
+      .block {
+        position: absolute;
+        width: 310px;
+        height: 210px;
+        object-fit: cover;
+        background-color: royalblue;
+        transform: rotateX(55deg) rotateY(0) rotateZ(45deg);
+        box-shadow: 13px 12px 15px -5px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+      }
+
+      .block img {
+        width: 100%;
+        transition: all 0.3s ease;
+        object-fit: cover;
+      }
+
+      .block:hover img {
+        transform: translate(-3%, -3%);
+      }
+
+      .b1 {
+        top: -9%;
+        right: -7%;
+      }
+
+      .b2 {
+        top: 6%;
+        right: 5%;
+      }
+
+      .b3 {
+        top: 21%;
+        right: 17%;
+      }
+
+      .b4 {
+        top: 36%;
+        right: 29%;
+      }
+
+      .b5 {
+        top: 51%;
+        right: 41%;
+      }
+
+      .b6 {
+        top: 20%;
+        right: -18%;
+      }
+
+      .b7 {
+        top: 35%;
+        right: -6%;
+      }
+
+      .b8 {
+        top: 50%;
+        right: 6%;
+      }
+
+      .b9 {
+        top: 65%;
+        right: 18%;
+      }
+
+      .b10 {
+        top: 65%;
+        right: -17%;
+      }
+
+      .b11 {
+        top: 79%;
+        right: -5%;
+      }
+    </style>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div class="main">
+      <div class="msg">Recent<br />Work</div>
+      <div class="btn">find more</div>
+      <div class="block b1">
+        <img
+          src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-0.3.5&s=c0ac25c3cd56ced9821b924fed4c3c43&auto=format&fit=crop&w=1650&q=80"
+          alt=""
+        />
+      </div>
+      <div class="block b2">
+        <img
+          src="https://images.unsplash.com/photo-1455461491901-a0990c10d84c?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=1ceed96179839c9b9ec7c528645e68d0&auto=format&fit=crop&w=1650&q=80"
+          alt=""
+        />
+      </div>
+      <div class="block b3">
+        <img
+          src="https://images.unsplash.com/photo-1482874478989-aaf30c03fe37?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=597a25d0feed7745e1c9f8c9fc625ff7&auto=format&fit=crop&w=1604&q=80"
+          alt=""
+        />
+      </div>
+      <div class="block b4">
+        <img
+          src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=5a7430d7bd5676bc7b81f2b8bf8f6a75&auto=format&fit=crop&w=1602&q=80"
+          alt=""
+        />
+      </div>
+      <div class="block b5">
+        <img
+          src="https://images.unsplash.com/photo-1483058712412-4245e9b90334?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=7c5008952226f48ed4bf5d3ea64ff545&auto=format&fit=crop&w=1650&q=80"
+          alt=""
+        />
+      </div>
+
+      <div class="block b6">
+        <img
+          src="https://images.unsplash.com/photo-1522199670076-2852f80289c3?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=ab630f082590b51249a9df9975164eb2&auto=format&fit=crop&w=1652&q=80"
+          alt=""
+        />
+      </div>
+      <div class="block b7">
+        <img
+          src="https://images.unsplash.com/photo-1457305237443-44c3d5a30b89?ixlib=rb-0.3.5&s=8a506c643bb73787ad46f49182d02d66&auto=format&fit=crop&w=1653&q=80"
+          alt=""
+        />
+      </div>
+      <div class="block b8">
+        <img
+          src="https://images.unsplash.com/photo-1515704089429-fd06e6668458?ixlib=rb-0.3.5&s=f70cea23233734dc4e283a8b3aff8451&auto=format&fit=crop&w=1650&q=80"
+          alt=""
+        />
+      </div>
+      <div class="block b9">
+        <img
+          src="https://images.unsplash.com/photo-1501159599894-155982264a55?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=e860fd30137f2e7e8110edb83acf5b65&auto=format&fit=crop&w=1650&q=80"
+          alt=""
+        />
+      </div>
+      <div class="block b10">
+        <img
+          src="https://images.unsplash.com/45/QDSMoAMTYaZoXpcwBjsL__DSC0104-1.jpg?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=feb02a1b955a6da489449fad6fede0ca&auto=format&fit=crop&w=1655&q=80"
+          alt=""
+        />
+      </div>
+      <div class="block b11">
+        <img
+          src="https://images.unsplash.com/photo-1502945015378-0e284ca1a5be?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=b934f71d8055c9013853b2fe286d66f0&auto=format&fit=crop&w=1650&q=80"
+          alt=""
+        />
+      </div>
+    </div>
+  </body>
+</html>

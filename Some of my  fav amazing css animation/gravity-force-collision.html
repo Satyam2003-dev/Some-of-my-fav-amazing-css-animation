@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+      #canvas {
+        background-color: #000;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    </style>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script>
+      // dependencies: Vector2D
+      function Ball(
+        radius,
+        color,
+        mass,
+        charge,
+        gradient,
+        line,
+        field,
+        sizefield
+      ) {
+        if (typeof radius === "undefined") radius = 20;
+        if (typeof color === "undefined") color = "#0000ff";
+        if (typeof mass === "undefined") mass = 1;
+        if (typeof charge === "undefined") charge = 0;
+        if (typeof gradient === "undefined") gradient = false;
+        if (typeof line === "undefined") line = false;
+        if (typeof field === "undefined") field = false;
+        if (typeof sizefield === "undefined") sizefield = 0;
+        this.radius = radius;
+        this.color = color;
+        this.mass = mass;
+        this.charge = charge;
+        this.gradient = gradient;
+        this.line = line;
+        this.x = 0;
+        this.y = 0;
+        this.vx = 0;
+        this.vy = 0;
+        this.angVelo = 0;
+        this.field = field;
+        this.sizefield = sizefield;
+      }
+
+      Ball.prototype = {
+        get pos2D() {
+          return new Vector2D(this.x, this.y);
+        },
+        set pos2D(pos) {
+          this.x = pos.x;
+          this.y = pos.y;
+        },
+        get velo2D() {
+          return new Vector2D(this.vx, this.vy);
+        },
+        set velo2D(velo) {
+          this.vx = velo.x;
+          this.vy = velo.y;
+        },
+        draw: function (context) {
+          if (this.field) {
+            context.fillStyle = "rgba(32,214,199,.3)";
+            context.beginPath();
+            context.arc(
+              this.x,
+              this.y,
+              this.radius + this.sizefield,
+              0,
+              2 * Math.PI,
+              true
+            );
+            context.closePath();
+            context.fill();
+          }
+          if (this.gradient) {
+            grad = context.createRadialGradient(
+              this.x,
+              this.y,
+              0,
+              this.x,
+              this.y,
+              this.radius
+            );
+            grad.addColorStop(0, "#ffffff");
+            grad.addColorStop(1, this.color);
+            context.fillStyle = grad;
+          } else {
+            context.fillStyle = this.color;
+          }
+          context.beginPath();
+          context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI, true);
+          context.closePath();
+          context.fill();
+          if (this.line) {
+            context.strokeStyle = this.color;
+            context.lineWidth = 1;
+            context.beginPath();
+            context.moveTo(this.x - this.radius, this.y);
+            context.lineTo(this.x + this.radius, this.y);
+            context.moveTo(this.x, this.y + this.radius);
+            context.lineTo(this.x, this.y - this.radius);
+            context.closePath();
+            context.stroke();
+          }
+        },
+      };
+
+      function Forces() {}
+
+      // STATIC METHODS
+      Forces.zeroForce = function () {
+        return new Vector2D(0, 0);
+      };
+      Forces.constantGravity = function (m, g) {
+        return new Vector2D(0, m * g);
+      };
+      Forces.gravity = function (G, m1, m2, r) {
+        return r.multiply((-G * m1 * m2) / (r.lengthSquared() * r.length()));
+      };
+      Forces.electric = function (k, q1, q2, r) {
+        return r.multiply((k * q1 * q2) / (r.lengthSquared() * r.length()));
+      };
+      Forces.forceField = function (q, E) {
+        return E.multiply(q);
+      };
+      Forces.lorentz = function (q, E, B, vel) {
+        return E.multiply(q).add(vel.perp(q * B * vel.length()));
+      };
+      Forces.central = function (k, n, r) {
+        return r.multiply(k * Math.pow(r.length(), n - 1));
+      };
+      Forces.linearDrag = function (k, vel) {
+        var force;
+        var velMag = vel.length();
+        if (velMag > 0) {
+          force = vel.multiply(-k);
+        } else {
+          force = new Vector2D(0, 0);
+        }
+        return force;
+      };
+      Forces.drag = function (k, vel) {
+        var force;
+        var velMag = vel.length();
+        if (velMag > 0) {
+          force = vel.multiply(-k * velMag);
+        } else {
+          force = new Vector2D(0, 0);
+        }
+        return force;
+      };
+      Forces.lift = function (k, vel) {
+        var force;
+        var velMag = vel.length();
+        if (velMag > 0) {
+          force = vel.perp(k * velMag);
+        } else {
+          force = new Vector2D(0, 0);
+        }
+        return force;
+      };
+      Forces.upthrust = function (rho, V, g) {
+        return new Vector2D(0, -rho * V * g);
+      };
+      Forces.vortex = function (k, r0, r) {
+        var force;
+        var rMag = r.length();
+        if (rMag > 0) {
+          if (rMag > r0) {
+            force = r.multiply(-k * Math.pow(r0 / rMag, 4));
+          } else {
+            force = r.multiply(k);
+          }
+        } else {
+          force = new Vector2D(0, 0);
+        }
+        return force;
+      };
+      Forces.spring = function (k, r) {
+        return r.multiply(-k);
+      };
+      Forces.damping = function (c, vel) {
+        var force;
+        var velMag = vel.length();
+        if (velMag > 0) {
+          force = vel.multiply(-c);
+        } else {
+          force = new Vector2D(0, 0);
+        }
+        return force;
+      };
+      Forces.add = function (arr) {
+        var forceSum = new Vector2D(0, 0);
+        for (var i = 0; i < arr.length; i++) {
+          var force = arr[i];
+          forceSum.incrementBy(force);
+        }
+        return forceSum;
+      };
+
+      function Vector2D(x, y) {
+        this.x = x;
+        this.y = y;
+      }
+
+      // PUBLIC METHODS
+      Vector2D.prototype = {
+        lengthSquared: function () {
+          return this.x * this.x + this.y * this.y;
+        },
+        length: function () {
+          return Math.sqrt(this.lengthSquared());
+        },
+        angle: function () {
+          return Math.atan2(this.y, this.x);
+        },
+        clone: function () {
+          return new Vector2D(this.x, this.y);
+        },
+        negate: function () {
+          this.x = -this.x;
+          this.y = -this.y;
+        },
+        unit: function () {
+          var length = this.length();
+          if (length > 0) {
+            return new Vector2D(this.x / length, this.y / length);
+          } else {
+            return new Vector2D(0, 0);
+          }
+        },
+        normalize: function () {
+          var length = this.length();
+          if (length > 0) {
+            this.x /= length;
+            this.y /= length;
+          }
+          return this.length();
+        },
+        add: function (vec) {
+          return new Vector2D(this.x + vec.x, this.y + vec.y);
+        },
+        incrementBy: function (vec) {
+          this.x += vec.x;
+          this.y += vec.y;
+        },
+        subtract: function (vec) {
+          return new Vector2D(this.x - vec.x, this.y - vec.y);
+        },
+        decrementBy: function (vec) {
+          this.x -= vec.x;
+          this.y -= vec.y;
+        },
+        multiply: function (k) {
+          return new Vector2D(k * this.x, k * this.y);
+        },
+        addScaled: function (vec, k) {
+          return new Vector2D(this.x + k * vec.x, this.y + k * vec.y);
+        },
+        scaleBy: function (k) {
+          this.x *= k;
+          this.y *= k;
+        },
+        dotProduct: function (vec) {
+          return this.x * vec.x + this.y * vec.y;
+        },
+        projection: function (vec) {
+          var length = this.length();
+          var lengthVec = vec.length();
+          var proj;
+          if (length == 0 || lengthVec == 0) {
+            proj = 0;
+          } else {
+            proj = (this.x * vec.x + this.y * vec.y) / lengthVec;
+          }
+          return proj;
+        },
+        project: function (vec) {
+          return vec.para(this.projection(vec));
+        },
+        para: function (u, positive) {
+          if (typeof positive === "undefined") positive = true;
+          var length = this.length();
+          var vec = new Vector2D(this.x, this.y);
+          if (positive) {
+            vec.scaleBy(u / length);
+          } else {
+            vec.scaleBy(-u / length);
+          }
+          return vec;
+        },
+        perp: function (u, anticlockwise) {
+          if (typeof anticlockwise === "undefined") anticlockwise = true;
+          var length = this.length();
+          var vec = new Vector2D(this.y, -this.x);
+          if (length > 0) {
+            if (anticlockwise) {
+              // anticlockwise with respect to canvas coordinate system
+              vec.scaleBy(u / length);
+            } else {
+              vec.scaleBy(-u / length);
+            }
+          } else {
+            vec = new Vector2D(0, 0);
+          }
+          return vec;
+        },
+      };
+
+      // STATIC METHODS
+      Vector2D.distance = function (vec1, vec2) {
+        return vec1.subtract(vec2).length();
+      };
+      Vector2D.angleBetween = function (vec1, vec2) {
+        return Math.acos(
+          vec1.dotProduct(vec2) / (vec1.length() * vec2.length())
+        );
+      };
+      Vector2D.scale = function (vec, sca) {
+        vec.x *= sca;
+        vec.y *= sca;
+      };
+      Vector2D.vector2D = function (mag, angle, clockwise) {
+        if (typeof clockwise === "undefined") clockwise = true;
+        var vec = new Vector2D(0, 0);
+        vec.x = mag * Math.cos(angle);
+        vec.y = mag * Math.sin(angle);
+        if (!clockwise) {
+          vec.y *= -1;
+        }
+        return vec;
+      };
+
+      var canvas = document.getElementById("canvas");
+      var context = canvas.getContext("2d");
+
+      // size
+      var W = window.innerWidth,
+        H = window.innerHeight,
+        halfW = W / 2,
+        halfH = H / 2;
+
+      canvas.width = W;
+      canvas.height = H;
+
+      var G = 1;
+      var c = 200;
+      var attractors;
+      var orbiters;
+      var t0;
+      var dt;
+      var force;
+      var acc;
+      var numOrbiters = 50;
+      var rows = 10;
+      var cols = 10;
+      var refPoint = new Vector2D(W / cols / 2, W / rows / 2);
+      var spacing = W / cols;
+      var numAttractors = rows * cols;
+
+      window.onload = init;
+
+      function init() {
+        // create attractors
+        attractors = new Array();
+        for (var i = 0; i < cols * rows; i++) {
+          var color = "rgba(17,63,89,.01)";
+          var r = 10;
+          var m = ((0.5 * c * c) / G) * r;
+          var attractor = new Ball(r, color, m, 0, true, false, true, 5);
+          var ncol = Math.floor(i / rows);
+          attractor.pos2D = new Vector2D(
+            refPoint.x + ncol * spacing,
+            refPoint.y + (i - ncol * rows - 1) * spacing
+          );
+          attractor.draw(context);
+          attractors.push(attractor);
+        }
+
+        // create orbiters
+        orbiters = new Array();
+        for (var i = 0; i < numOrbiters; i++) {
+          var color = "rgba(243,237,91,1)";
+          var orbiter = new Ball(3, color, 1, 0, false, false, true, 5);
+          orbiter.pos2D = new Vector2D(
+            Math.random() * canvas.width,
+            Math.random() * canvas.height
+          );
+          orbiter.velo2D = new Vector2D(
+            (Math.random() - 0.5) * 100,
+            (Math.random() - 0.5) * 100
+          );
+          orbiter.draw(context);
+          orbiters.push(orbiter);
+        }
+        t0 = new Date().getTime();
+
+        window.addEventListener("mousedown", onDocumentMouseDown, false);
+        window.addEventListener("resize", onResize, false);
+        animFrame();
+      }
+
+      function onResize(e) {
+        W = window.innerWidth;
+        H = window.innerHeight;
+        halfW = W / 2;
+        halfH = H / 2;
+
+        canvas.width = W;
+        canvas.height = H;
+        spacing = W / cols;
+      }
+
+      function onDocumentMouseDown(e) {
+        if (e.pageX || e.pageY) {
+          posx = e.pageX;
+          posy = e.pageY;
+        } else if (e.clientX || e.clientY) {
+          posx =
+            e.clientX +
+            document.body.scrollLeft +
+            document.documentElement.scrollLeft;
+          posy =
+            e.clientY +
+            document.body.scrollTop +
+            document.documentElement.scrollTop;
+        }
+
+        var color = "rgba(243,237,91,1)";
+        var orbiter = new Ball(3, color, 1, 0, false, false, true, 5);
+        orbiter.pos2D = new Vector2D(posx, posy);
+        orbiter.velo2D = new Vector2D(
+          (Math.random() - 0.5) * 100,
+          (Math.random() - 0.5) * 100
+        );
+        orbiter.draw(context);
+        orbiters.push(orbiter);
+        numOrbiters++;
+        console.log(numOrbiters);
+      }
+
+      function animFrame() {
+        requestAnimationFrame(animFrame, canvas);
+        onTimer();
+      }
+      function onTimer() {
+        var t1 = new Date().getTime();
+        dt = 0.001 * (t1 - t0);
+        t0 = t1;
+        if (dt > 0.2) {
+          dt = 0;
+        }
+        move();
+      }
+      function move() {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (var i = 0; i < numOrbiters; i++) {
+          var orbiter = orbiters[i];
+          moveObject(orbiter);
+          calcForce(orbiter);
+          updateAccel(orbiter.mass);
+          updateVelo(orbiter);
+        }
+        for (var i = 0; i < numAttractors; i++) {
+          var attractor = attractors[i];
+          attractor.draw(context);
+        }
+      }
+
+      function moveObject(obj) {
+        obj.pos2D = obj.pos2D.addScaled(obj.velo2D, dt);
+        if (
+          obj.x < 0 ||
+          obj.x > canvas.width ||
+          obj.y < 0 ||
+          obj.y > canvas.height
+        ) {
+          recycleOrbiter(obj);
+        }
+        obj.draw(context);
+      }
+      function updateAccel(mass) {
+        acc = force.multiply(1 / mass);
+      }
+      function updateVelo(obj) {
+        obj.velo2D = obj.velo2D.addScaled(acc, dt);
+      }
+      function calcForce(obj) {
+        var gravity;
+        force = Forces.zeroForce();
+        for (var i = 0; i < numAttractors; i++) {
+          var attractor = attractors[i];
+          var dist = obj.pos2D.subtract(attractor.pos2D);
+          if (
+            dist.length() <
+            attractor.radius + obj.radius + attractor.sizefield
+          ) {
+            context.strokeStyle = obj.color;
+            context.lineWidth = 0.5;
+            context.beginPath();
+            context.moveTo(obj.pos2D.x, obj.pos2D.y);
+            context.lineTo(attractor.pos2D.x, attractor.pos2D.y);
+            context.closePath();
+            context.stroke();
+          }
+          if (dist.length() > attractor.radius + obj.radius) {
+            gravity = Forces.gravity(G, attractor.mass, obj.mass, dist);
+            force = Forces.add([force, gravity]);
+          } else {
+            // normal velocity vectors just before the impact
+            var normalVelo1 = obj.velo2D.project(dist);
+            var normalVelo2 = attractor.velo2D.project(dist);
+            // tangential velocity vectors
+            var tangentVelo1 = obj.velo2D.subtract(normalVelo1);
+            var tangentVelo2 = attractor.velo2D.subtract(normalVelo2);
+            // move particles so that they just touch
+            var L = obj.radius + attractor.radius - dist.length();
+            var vrel = normalVelo1.subtract(normalVelo2).length();
+            obj.pos2D = obj.pos2D.addScaled(normalVelo1, -L / vrel);
+            attractor.pos2D = attractor.pos2D.addScaled(normalVelo2, -L / vrel);
+            // normal velocity components after the impact
+            var m1 = obj.mass;
+            var m2 = attractor.mass;
+            var u1 = normalVelo1.projection(dist);
+            var u2 = normalVelo2.projection(dist);
+            var v1 = ((m1 - m2) * u1 + 2 * m2 * u2) / (m1 + m2);
+            var v2 = ((m2 - m1) * u2 + 2 * m1 * u1) / (m1 + m2);
+            // normal velocity vectors after collision
+            normalVelo1 = dist.para(v1);
+            normalVelo2 = dist.para(v2);
+            // final velocity vectors after collision
+            obj.velo2D = normalVelo1.add(tangentVelo1);
+          }
+        }
+      }
+      function recycleOrbiter(obj) {
+        obj.pos2D = new Vector2D(
+          Math.random() * canvas.width,
+          Math.random() * canvas.height
+        );
+        obj.velo2D = new Vector2D(
+          (Math.random() - 0.5) * 100,
+          (Math.random() - 0.5) * 100
+        );
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<style>
+		
+html {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  font-size: 1rem;
+}
+
+*, *:before, *:after {
+  -webkit-box-sizing: inherit;
+  -moz-box-sizing: inherit;
+  box-sizing: inherit;
+}
+
+.visually-hidden {
+  position: absolute; 
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  height: 1px; width: 1px;
+  margin: -1px; padding: 0;   border: 0;
+}
+
+body {
+  background: black;
+  font-family: sans-serif;
+  color: white;
+  margin: 1rem;
+}
+
+header {
+  margin-bottom: 3rem;
+}
+
+h1 {
+  font-size: 2rem
+}
+
+h2 {
+  font-size: 1.5rem
+}
+
+.console {
+  width: 100%;
+  /* max-width: 40rem; */
+}
+
+canvas {
+  border: 1px white solid;
+}
+
+#canvas0 {
+  width: 100%;
+  /* max-width: 50rem;
+  max-height: 50rem; */
+  margin-bottom: .5em;
+}
+
+#ui {
+  border: 1px white solid;
+  display: flex;
+  justify-content: space-between;
+  text-transform: lowercase;
+  padding: .25em;
+  margin-bottom: .5em;
+}
+
+.ui-item {
+  display: inline-block;
+}
+
+#ui input {
+  width: 4em;
+  border: 1px white solid;
+  background: black;
+  color: white;
+  padding: .25em;
+  font-size: .875em;
+  text-align: right;
+}
+
+@media screen and (orientation: landscape) {
+  .console {
+    display: flex;
+
+  }
+
+  #canvas0 {
+    width: calc(100vh - 3rem);
+    height: calc(100vh - 3rem);
+    margin-right: .5em;
+  }
+
+  #ui {
+    display: flex;
+    flex-direction: column;
+    height: 12em;
+    padding: .5em;
+  }
+
+  .ui-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  #ui input {
+    margin-left: .5em;
+  }
+}
+	</style>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+</head>
+<body>
+	<main id="content">
+		<header role="banner" class="visually-hidden">
+		  <h1>Isosphere</h1>
+		  <h2>An interactive isometric sphere rendered in a canvas element</h2>
+		</header>
+		<section class="console">
+		    <canvas id="canvas0" width="640" height="640"></canvas>
+		    <form id="ui">
+		      <div class="ui-item"><label for="spd">Speed:</label><input id="spd" name="spd" type="number" step="1" value="5"></input></div>
+		      <div class="ui-item"><label for="rad">Rad:</label><input id="spd" name="rad" type="number" step="0.1" value="1"></input></div>
+		      <div class="ui-item"><label for="lat">Lat:</label><input id="lat" name="lat" type="number" step="1" value="16" min="0" ></input></div>
+		      <div class="ui-item"><label for="lon">Lon:</label><input id="lon" name="lon" type="number" step="1" value="32" min="0" ></input></div>
+		      <div class="ui-item"><label for="pi">Pi:</label><input id="pi" name="pi" type="number" step=".1" value="3.14" ></input></div>
+		    </form>
+		  </section>
+	      </main>
+	      <footer>
+		<script src="isosphere.js"></script>
+	      </footer>
+	      <script>
+		      
+var dotRad = 1;
+var sphereChange = false;
+
+// FUNCTIONS
+
+// Canvas adjustment for high DPI displays
+function setupCanvas( canvas ) {
+  // Get the device pixel ratio, falling back to 1.
+  var dpr = window.devicePixelRatio || 1;
+
+  // Get the size of the canvas in CSS pixels.
+  var rect = canvas.getBoundingClientRect();
+
+  // Give the canvas pixel dimensions of their CSS
+  // size * the device pixel ratio.
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  var context = canvas.getContext( '2d' );
+  
+  // Scale all drawing operations by the dpr, so you
+  // don't have to worry about the difference.
+  context.scale(dpr, dpr);
+  return context;
+}
+
+// Allow browser to set it's own FPS
+window.requestAnimFrame = (function(callback) {
+  return window.requestAnimationFrame ||
+  function(callback) {
+    window.setTimeout(callback, 1000 / 60);
+  };
+})();
+
+// Loops through sphere array and plots points
+// Accepts array ( id, ( z, rad, th ) ), ro, context
+function drawSphere( sphere, ro, context ) {
+  for ( var id = 0; id < sphere.length; id++ ) {
+    [ x, y ] = viewport( iso( depolar( rotate( ro, sphere[id] ) ) ) );
+    context.fillRect( x - dotRad, y - dotRad, 2 * dotRad, 2 * dotRad );
+  }
+}
+
+// Gets actual canvas bounds for calculating viewport with responsive canvas
+// Accepts canvas
+// Returns array ( left, top, right, bottom )
+function getCanvasBounds( canvas ) {
+  var rect = canvas.getBoundingClientRect();
+  return [ 0, 0, rect.width, rect.height ];
+}
+
+// Updates sphere position, clears canvas, draws new sphere and updates animation frame
+// Accepts sphere array (id, (z, rad, th)), canvas, context, startTime (time)
+// Based on https://www.html5canvastutorials.com/advanced/html5-canvas-animation-stage/
+function animate(sphere, canvas, context, startTime) {
+  // Update
+  var time = new Date().getTime() - startTime;
+  var rotationSpeed = parseFloat(document.querySelector('input[name="spd"]').value); // Seconds per revolution
+  var ro = ( rotationSpeed / 100 ) * time / 1000 * 2 * pi;
+  if ( ro >= 2 * pi ) {
+    ro = ro - 2 * pi;
+  }
+
+  // If input from the interface effects the sphere model,
+  // grab updated info and generate a new sphere
+  if ( sphereChange === true ) {
+    rad = parseFloat(document.querySelector('input[name="rad"]').value);
+    lat = parseInt(document.querySelector('input[name="lat"]').value, 10);
+    lon = parseInt(document.querySelector('input[name="lon"]').value, 10);
+    window.pi = parseFloat(document.querySelector('input[name="pi"]').value);
+    sphere = defineSphere( rad, lat, lon);
+    // Reset global change token
+    window.sphereChange = false;
+  }
+
+  // clear
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  drawSphere( sphere, ro, context);
+
+  // request new
+  requestAnimFrame(function() {
+    animate(sphere, canvas, context, startTime);
+  });
+}
+
+// Rotates points in cylendrical coordinates about its Z axis
+// Accepts a rotation angle (ro) and an array ( z, rad, th )
+// Returns an array with three float values ( z, rad, th )
+function rotate( ro, pointZRadTh ) {
+  var rotatedPointZRadTh = [];
+  rotatedPointZRadTh[0] = pointZRadTh[0];
+  rotatedPointZRadTh[1] = pointZRadTh[1];
+  rotatedPointZRadTh[2] = pointZRadTh[2] + ro;
+  return rotatedPointZRadTh;
+}
+
+// Converts cylendrical coordinates to cartesian coordinates
+// Accepts an array with three float values ( z, rad, th )
+// Returns an array with three float values ( z, x, y )
+function depolar( pointZRadTh ) {
+  var pointZXY = [];
+  pointZXY[0] = pointZRadTh[0];
+  pointZXY[1] = pointZRadTh[1] * Math.sin( pointZRadTh[2] );
+  pointZXY[2] = pointZRadTh[1] * Math.cos( pointZRadTh[2] );
+  return pointZXY;
+}
+
+// Converts 3D cartesian coordinates to 2D isometric coordinates
+// Accepts an array with three float values ( z, x, y)
+// Returns an array with two float values ( x, y )
+function iso( pointZXY ) {
+  var isoXY = [];
+  var th = pi / 6;
+  isoXY[0] = pointZXY[1] * Math.cos(th) - pointZXY[2] * Math.cos(th);
+  isoXY[1] = pointZXY[1] * Math.sin(th) + pointZXY[2] * Math.sin(th) + pointZXY[0];
+  return isoXY;
+}
+
+// Scales and translates points in the viewport to fit the canvas
+// Accepts an array with two float values (x, y)
+// Returns an array with two integer values (u, v)
+function viewport( viewportXY ) {
+  var canvasXY = [];
+  var viewportWidth = viewportBounds[2] - viewportBounds[0];
+  var viewportHeight = viewportBounds[3] - viewportBounds[1];
+  var canvasWidth = canvasBounds[2] - canvasBounds[0];
+  var canvasHeight = canvasBounds[3] - canvasBounds[1];
+  canvasXY[0] = Math.round( ( viewportXY[0] / viewportWidth ) * canvasWidth + canvasWidth / 2 ) ;
+  canvasXY[1] = Math.round( ( viewportXY[1] / viewportHeight ) * canvasHeight + canvasHeight / 2 ) ;
+  return canvasXY;
+}
+
+// Define sphere centered on the origin
+// Accepts three floats: radius, # of latitude lines, # of longitude lines
+// Returns two dimensional array of the form: ( point id (id), ( height (z), radius (rad), angle (th) ))
+function defineSphere( sphereRad, sphereLat, sphereLon ) {
+  sphere = [];
+  id = 0;
+  // Z increment is sphere height divided by number of latitude lines
+  zInc = 2 * sphereRad / sphereLat;
+  // Start at the lowest point and loop through the lines of latitude
+  for ( var z_i = 0; z_i <= sphereLat; z_i++ ) {
+    // Calc height from z index
+    z = -sphereRad + z_i * zInc;
+    // Find the radius of a circle at that line of latitude
+    rad = Math.sqrt( Math.pow( sphereRad, 2) - Math.pow( z, 2 ) );
+    // Theta increment is circumference divided by the number of lines of longitude
+    thInc = 2 * pi / sphereLon;
+
+    // If there is a radius, loop around latitude line and make points where longitudes intersect
+    if ( rad != 0 ) {
+      for ( var th_i = 0; th_i < sphereLon; th_i++ ) {
+        // Create array for point id;
+        sphere[id] = [];
+        // Calc angle from theta index
+        th = th_i * thInc;
+        // Assign coordinates to array;
+        sphere[id][0] = z;
+        sphere[id][1] = rad;
+        sphere[id][2] = th;
+        id = id + 1;
+      }
+    } else {
+      // Create array for point id
+      sphere[id] = [];
+      // Assign coordinates to array;
+      sphere[id][0] = z;
+      sphere[id][1] = 0;
+      sphere[id][2] = 0;
+      id = id + 1;
+    }
+  }
+  return sphere;
+}
+
+// Add Event Listeners for input changes
+document.querySelector('input[name="rad"]').addEventListener('change', function() { sphereChange = true } );
+document.querySelector('input[name="lat"]').addEventListener('change', function() { sphereChange = true } );
+document.querySelector('input[name="lon"]').addEventListener('change', function() { sphereChange = true } );
+document.querySelector('input[name="pi"]').addEventListener('change', function() { sphereChange = true } );
+
+// DRAW
+// Setup canvas
+var canvas = document.getElementById( "canvas0" );
+var context = setupCanvas( canvas );
+
+// Establish viewport
+var viewportBounds = [ -1.75, 1.75, 1.75, -1.75 ]; // (left, top, right, bottom)
+var canvasBounds = getCanvasBounds( canvas ); // (left, top, right, bottom)
+
+// Set draw color
+context.fillStyle = "#FFFFFF";
+
+// Define sphere properties from HTML inputs
+rad = parseFloat(document.querySelector('input[name="rad"]').value);
+lat = parseInt(document.querySelector('input[name="lat"]').value, 10);
+lon = parseInt(document.querySelector('input[name="lon"]').value, 10);
+pi = parseFloat(document.querySelector('input[name="pi"]').value);
+sphere = defineSphere( rad, lat, lon );
+
+var startTime = ( new Date()).getTime();
+animate( sphere, canvas, context, startTime );
+
+	      </script>
+</body>
+</html>
